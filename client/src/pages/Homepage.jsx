@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
@@ -22,7 +22,6 @@ const Homepage = () => {
     fetchAlerts();
   }, []);
 
-  // Show loading state while checking auth status
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -131,7 +130,7 @@ const Homepage = () => {
                 {alerts.length > 0 ? (
                   <span>{alerts.length} active alerts in your area</span>
                 ) : (
-                  "Loading alert data..."
+                  <span className="text-gray-400">No active alerts</span>
                 )}
               </p>
             </div>

@@ -26,7 +26,7 @@ const Login = () => {
     if (!result.success) {
       setMessage(result.message);
     }
-    // Do not call navigate here! Wait for user to be set.
+    // No need to navigate here; useEffect will handle redirect on user change
   };
 
   if (loading && !localLoading) {

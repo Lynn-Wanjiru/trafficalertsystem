@@ -24,12 +24,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      await axios.post(
+      const { data } = await axios.post(
         "http://localhost:5000/api/auth/login",
         { email, password },
         { withCredentials: true }
       );
-      await fetchUser(); // Ensure user state is set before returning
+      setUser(data.user); // <-- Set user directly from response
+      setLoading(false);
       return { success: true };
     } catch (err) {
       setLoading(false);
@@ -49,8 +50,13 @@ export const AuthProvider = ({ children }) => {
         { withCredentials: true }
       );
       setUser(null);
+      return { success: true };
     } catch (err) {
-      console.error("Logout error:", err);
+      setLoading(false);
+      return {
+        success: false,
+        message: err.response?.data?.message || "Logout failed",
+      };
     } finally {
       setLoading(false);
     }
