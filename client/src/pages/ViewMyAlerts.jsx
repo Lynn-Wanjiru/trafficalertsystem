@@ -1,117 +1,156 @@
 import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 
 const ViewMyAlerts = () => {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState([]);
-  const [mapCenter, setMapCenter] = useState([1.2921, 36.8219]);
   const [message, setMessage] = useState("");
   const [editAlert, setEditAlert] = useState(null);
+  const [editType, setEditType] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editLocation, setEditLocation] = useState({ lat: "", lng: "" });
+  const [filterDate, setFilterDate] = useState("");
+  const [filterType, setFilterType] = useState("");
+
+  const fetchAlerts = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/alerts/mine", {
+        withCredentials: true,
+      });
+      setAlerts(res.data);
+    } catch (err) {
+      setMessage("Error fetching alerts");
+    }
+  };
 
   useEffect(() => {
-    const fetchAlerts = async () => {
-      try {
-        const res = await axios.get(
-          `http://localhost:5000/api/alerts/my-alerts/${user.id}`,
-          { withCredentials: true }
-        );
-        setAlerts(res.data);
-      } catch (err) {
-        setMessage("Error fetching alerts");
-      }
-    };
     fetchAlerts();
-  }, [user.id]);
+  }, []);
 
   const handleEdit = (alert) => {
     setEditAlert(alert);
+    setEditType(alert.type);
     setEditDescription(alert.description);
+    setEditLocation({
+      lat: alert.location.coordinates[1],
+      lng: alert.location.coordinates[0],
+    });
+    setMessage("");
   };
 
   const handleSave = async (alertId) => {
     try {
       await axios.put(
         `http://localhost:5000/api/alerts/${alertId}`,
-        { description: editDescription },
+        {
+          type: editType,
+          description: editDescription,
+          location: { lat: editLocation.lat, lng: editLocation.lng },
+        },
         { withCredentials: true }
-      );
-      setAlerts(
-        alerts.map((alert) =>
-          alert._id === alertId
-            ? { ...alert, description: editDescription }
-            : alert
-        )
       );
       setEditAlert(null);
       setMessage("Alert updated successfully");
+      await fetchAlerts(); // Refresh after save
     } catch (err) {
       setMessage("Error updating alert");
     }
   };
 
-  const handleLocationClick = (lat, lng) => {
-    setMapCenter([lat, lng]);
+  const handleDelete = async (alertId) => {
+    if (!window.confirm("Are you sure you want to delete this alert?")) return;
+    try {
+      await axios.delete(`http://localhost:5000/api/alerts/${alertId}`, {
+        withCredentials: true,
+      });
+      setMessage("Alert deleted successfully");
+      await fetchAlerts();
+    } catch (err) {
+      setMessage("Error deleting alert");
+    }
   };
+
+  const filteredAlerts = alerts.filter((alert) => {
+    const alertDate = new Date(alert.createdAt);
+    const matchesDate = filterDate
+      ? alertDate.toISOString().slice(0, 16) === filterDate
+      : true;
+    const matchesType = filterType ? alert.type === filterType : true;
+    return matchesDate && matchesType;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <h1 className="text-3xl font-bold text-blue-900 mb-4">View My Alerts</h1>
+      {/* Filter controls */}
+      <div className="flex gap-4 mb-4">
+        <div>
+          <label className="block text-sm text-gray-700">Date/Time</label>
+          <input
+            type="datetime-local"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="border rounded p-2"
+          />
+        </div>
+        <div>
+          <label className="block text-sm text-gray-700">Type</label>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="border rounded p-2"
+          >
+            <option value="">All</option>
+            <option value="Roadblock">Roadblock</option>
+            <option value="Accident">Accident</option>
+            <option value="Construction">Construction</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
       <div className="bg-white shadow-md rounded-lg p-6 max-h-[600px] overflow-y-auto">
-        {alerts.map((alert) => (
+        {filteredAlerts.length === 0 && (
+          <p className="text-center text-gray-500">
+            You have no alerts matching the selected filters.
+          </p>
+        )}
+        {filteredAlerts.map((alert) => (
           <div key={alert._id} className="border-b py-2">
             <p>
-              <strong>Type:</strong> {alert.type}
+              <strong>Type:</strong>{" "}
+              {editAlert && editAlert._id === alert._id ? (
+                <select
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value)}
+                  className="border border-blue-900/30 rounded-md p-2 ml-2"
+                  required
+                >
+                  <option value="Roadblock">Roadblock</option>
+                  <option value="Accident">Accident</option>
+                  <option value="Construction">Construction</option>
+                  <option value="Other">Other</option>
+                </select>
+              ) : (
+                alert.type
+              )}
             </p>
-            {editAlert && editAlert._id === alert._id ? (
-              <div>
-                <textarea
+            <p>
+              <strong>Description:</strong>{" "}
+              {editAlert && editAlert._id === alert._id ? (
+                <input
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full border border-blue-900/30 rounded-md p-2"
+                  className="border border-blue-900/30 rounded-md p-2 ml-2 w-2/3"
+                  required
                 />
-                <button
-                  onClick={() => handleSave(alert._id)}
-                  className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditAlert(null)}
-                  className="mt-2 ml-2 bg-gray-500 text-white px-4 py-2 rounded-md"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <>
-                <p>
-                  <strong>Description:</strong> {alert.description}
-                </p>
-                <button
-                  onClick={() => handleEdit(alert)}
-                  className="mt-2 bg-green-600 text-white px-4 py-2 rounded-md"
-                >
-                  Edit
-                </button>
-              </>
-            )}
-            <p>
-              <strong>Status:</strong> {alert.status || "Pending"}
+              ) : (
+                alert.description
+              )}
             </p>
             <p>
-              <strong>Location:</strong>{" "}
-              <span
-                onClick={() =>
-                  handleLocationClick(alert.location.lat, alert.location.lng)
-                }
-                className="text-blue-600 cursor-pointer"
-              >
-                View on Map
-              </span>
+              <strong>Status:</strong> {alert.status || "Pending"}
             </p>
             <p>
               <strong>Date/Time:</strong>{" "}
@@ -128,24 +167,68 @@ const ViewMyAlerts = () => {
                 {alert.suggestedRoutes.join(", ")}
               </p>
             )}
+            {editAlert && editAlert._id === alert._id && (
+              <div className="my-2">
+                <MapContainer
+                  center={[editLocation.lat, editLocation.lng]}
+                  zoom={15}
+                  style={{ height: "200px", width: "100%" }}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <Marker
+                    position={[editLocation.lat, editLocation.lng]}
+                    draggable={true}
+                    eventHandlers={{
+                      dragend: (e) => {
+                        const marker = e.target;
+                        const position = marker.getLatLng();
+                        setEditLocation({
+                          lat: position.lat,
+                          lng: position.lng,
+                        });
+                      },
+                    }}
+                  />
+                </MapContainer>
+              </div>
+            )}
+            {editAlert && editAlert._id === alert._id ? (
+              <div className="mt-2">
+                <button
+                  onClick={() => handleSave(alert._id)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md mr-2"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditAlert(null)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-md"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => handleEdit(alert)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md"
+                >
+                  Edit
+                </button>
+                {!(editAlert && editAlert._id === alert._id) && (
+                  <button
+                    onClick={() => handleDelete(alert._id)}
+                    className="mt-2 bg-red-600 text-white px-4 py-2 rounded-md ml-2"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ))}
         {message && <p className="text-center mt-4 text-red-500">{message}</p>}
-      </div>
-      <div className="mt-6 bg-white shadow-md rounded-lg p-6 h-[400px]">
-        <MapContainer
-          center={mapCenter}
-          zoom={13}
-          style={{ height: "100%", width: "100%" }}
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          {alerts.map((alert) => (
-            <Marker
-              key={alert._id}
-              position={[alert.location.lat, alert.location.lng]}
-            />
-          ))}
-        </MapContainer>
       </div>
     </div>
   );

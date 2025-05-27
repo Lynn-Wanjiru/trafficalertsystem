@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
@@ -7,6 +7,17 @@ const Homepage = () => {
   const { user, loading } = useAuth();
   const [alerts, setAlerts] = useState([]);
   const [message, setMessage] = useState("");
+
+  // Count alerts by type for the bar graph
+  const alertTypes = ["Roadblock", "Accident", "Construction", "Other"];
+  const alertCounts = alertTypes.map(
+    (type) => alerts.filter((a) => a.type === type).length
+  );
+  const maxCount = Math.max(...alertCounts, 1);
+
+  // Animation state for services
+  const [servicesVisible, setServicesVisible] = useState(false);
+  const servicesRef = useRef(null);
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -20,6 +31,18 @@ const Homepage = () => {
       }
     };
     fetchAlerts();
+  }, []);
+
+  useEffect(() => {
+    // Simple intersection observer to trigger animation
+    const observer = new window.IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setServicesVisible(true);
+      },
+      { threshold: 0.2 }
+    );
+    if (servicesRef.current) observer.observe(servicesRef.current);
+    return () => observer.disconnect();
   }, []);
 
   if (loading) {
@@ -120,19 +143,44 @@ const Homepage = () => {
             </div>
           </div>
 
-          {/* Stats Placeholder */}
-          <div className="bg-white shadow-md rounded-lg p-6 h-[400px]">
+          {/* Stats with Bar Graph */}
+          <div className="bg-white shadow-md rounded-lg p-6 h-[400px] flex flex-col">
             <h3 className="text-xl font-bold text-blue-900 mb-4">
               Most Common Alerts Today
             </h3>
-            <div className="h-[80%] flex items-center justify-center bg-gray-100 rounded-md">
-              <p className="text-gray-500">
-                {alerts.length > 0 ? (
-                  <span>{alerts.length} active alerts in your area</span>
-                ) : (
-                  <span className="text-gray-400">No active alerts</span>
-                )}
-              </p>
+            <div className="flex-1 flex flex-col justify-center">
+              {alerts.length > 0 ? (
+                <div className="space-y-3">
+                  {alertTypes.map((type, idx) => (
+                    <div key={type} className="flex items-center">
+                      <span className="w-28 text-sm">{type}</span>
+                      <div
+                        className={`h-5 rounded transition-all duration-300 ${
+                          type === "Roadblock"
+                            ? "bg-purple-600"
+                            : type === "Accident"
+                            ? "bg-red-500"
+                            : type === "Construction"
+                            ? "bg-blue-600"
+                            : "bg-orange-500"
+                        }`}
+                        style={{
+                          width: `${(alertCounts[idx] / maxCount) * 180}px`,
+                          minWidth: "10px",
+                        }}
+                        title={`${alertCounts[idx]} ${type} alerts`}
+                      ></div>
+                      <span className="ml-2 text-gray-700 font-semibold">
+                        {alertCounts[idx]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400 text-center mt-12">
+                  No active alerts
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -151,7 +199,7 @@ const Homepage = () => {
         </div>
 
         {/* Services Section */}
-        <div id="services-section" className="mt-12">
+        <div id="services-section" className="mt-12" ref={servicesRef}>
           <h3 className="text-2xl font-bold text-blue-900 text-center mb-6">
             Services
           </h3>
@@ -160,27 +208,33 @@ const Homepage = () => {
               {
                 title: "Real-Time Alerts",
                 color: "text-blue-600",
-                desc: "Get instant traffic updates",
+                desc: "Get instant notifications about accidents, roadblocks, and hazards as soon as they're reported by the community.",
               },
               {
                 title: "Route Suggestions",
                 color: "text-green-600",
-                desc: "Find the best paths",
+                desc: "Find the fastest and safest routes based on live traffic and incident data, helping you avoid delays.",
               },
               {
                 title: "Community Reporting",
                 color: "text-orange-500",
-                desc: "Help others avoid jams",
+                desc: "Easily report incidents you encounter and help others stay informed. Every report makes the roads safer for everyone.",
               },
               {
                 title: "Patrol Verification",
                 color: "text-purple-600",
-                desc: "Ensured accuracy",
+                desc: "Verified patrol officers confirm and update incident statuses, ensuring information is accurate and trustworthy.",
               },
             ].map((service, index) => (
               <div
                 key={index}
-                className="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow"
+                className={`bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow transform
+                ${servicesVisible ? "animate-pop-in" : "opacity-0 scale-75"}
+                `}
+                style={{
+                  animationDelay: `${index * 0.15}s`,
+                  animationFillMode: "forwards",
+                }}
               >
                 <h4 className={`font-bold ${service.color}`}>
                   {service.title}
@@ -249,3 +303,23 @@ const Homepage = () => {
 };
 
 export default Homepage;
+
+/* Tailwind CSS custom animation (add to your global CSS, e.g., index.css or App.css):
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-pop-in {
+  animation: pop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+*/

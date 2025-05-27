@@ -5,7 +5,7 @@ const alertSchema = new mongoose.Schema({
   description: { type: String, required: true },
   location: {
     type: { type: String, enum: ["Point"], required: true },
-    coordinates: { type: [Number], required: true }, // [longitude, latitude]
+    coordinates: { type: [Number], required: true }, // [lng, lat]
   },
   reportedBy: {
     type: mongoose.Schema.Types.ObjectId,

@@ -2,6 +2,20 @@ import React, { useState } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAuth } from "../context/AuthContext";
+import L from "leaflet";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+// Fix default marker icon issue with leaflet in React
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
 
 const LocationMarker = ({ setPosition }) => {
   const [position, setPos] = useState(null);
@@ -20,13 +34,12 @@ const ReportIncident = () => {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState(null);
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!alertType || !description || !location) {
-      setMessage(
-        "All fields (Alert Type, Description, and Location) are required"
-      );
+      setMessage("All fields are required");
       return;
     }
     try {
@@ -36,88 +49,106 @@ const ReportIncident = () => {
           type: alertType,
           description,
           location: { lat: location.lat, lng: location.lng },
-          userId: user.id,
         },
         { withCredentials: true }
       );
-      setMessage("Alert submitted successfully");
-      setAlertType("");
-      setDescription("");
-      setLocation(null);
+      setMessage("Successfully submitted!");
+      setTimeout(() => {
+        navigate("/view-my-alerts");
+      }, 1500);
     } catch (err) {
+      console.error("Submit error:", err.response?.data || err.message);
       setMessage("Error submitting alert");
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-6">
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h1 className="text-3xl font-bold text-blue-900 mb-4">
-            Report Incident
-          </h1>
-          <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="max-w-4xl mx-auto flex flex-col">
+        {/* Horizontal layout for form and map */}
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Form */}
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white shadow-md rounded-lg p-6 flex-1 flex flex-col justify-between"
+            style={{ minWidth: 0 }}
+            autoComplete="off"
+          >
             <div>
-              <label className="block text-lg font-medium text-gray-700">
-                Alert Type
-              </label>
-              <select
-                value={alertType}
-                onChange={(e) => setAlertType(e.target.value)}
-                className="w-full border border-blue-900/30 rounded-md p-3"
-                required
-              >
-                <option value="">Select Type</option>
-                <option value="Roadblock">Roadblock</option>
-                <option value="Accident">Accident</option>
-                <option value="Construction">Construction</option>
-                <option value="Other">Other</option>
-              </select>
+              <h1 className="text-3xl font-bold text-blue-900 mb-4">
+                Report Incident
+              </h1>
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700 mb-2">
+                  Alert Type
+                </label>
+                <select
+                  value={alertType}
+                  onChange={(e) => setAlertType(e.target.value)}
+                  className="w-full border border-blue-900/30 rounded-md p-3"
+                  required
+                >
+                  <option value="">Select Type</option>
+                  <option value="Roadblock">Roadblock</option>
+                  <option value="Accident">Accident</option>
+                  <option value="Construction">Construction</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-lg font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full border border-blue-900/30 rounded-md p-3"
+                  placeholder="Describe the incident"
+                  required
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-lg font-medium text-gray-700">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full border border-blue-900/30 rounded-md p-3"
-                placeholder="Describe the incident"
-                required
-              />
-            </div>
-            <input
-              type="hidden"
-              value={location ? `${location.lat},${location.lng}` : ""}
-            />
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-900 to-purple-800 text-white py-3 rounded-md"
+              className="bg-gradient-to-r from-blue-900 to-purple-800 text-white px-8 py-3 rounded-md text-lg font-medium hover:opacity-90 transition-opacity"
               disabled={!alertType || !description || !location}
             >
               Submit Alert
             </button>
-            {message && (
-              <p className="text-center mt-4 text-green-600">
-                {message.includes("successfully") ? (
-                  message
-                ) : (
-                  <span className="text-red-500">{message}</span>
-                )}
-              </p>
-            )}
           </form>
-        </div>
-        <div className="bg-white shadow-md rounded-lg p-6 h-[500px]">
-          <MapContainer
-            center={[1.2921, 36.8219]}
-            zoom={13}
-            style={{ height: "100%", width: "100%" }}
+          {/* Map */}
+          <div
+            className="bg-white shadow-md rounded-lg p-6 flex-1 flex items-center justify-center"
+            style={{ minWidth: 0, zIndex: 0 }}
           >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <LocationMarker setPosition={setLocation} />
-          </MapContainer>
+            <div className="w-full h-[300px] md:h-[350px] rounded-md overflow-hidden">
+              <MapContainer
+                center={[-1.286389, 36.817223]} // Nairobi coordinates
+                zoom={13}
+                style={{ height: "100%", width: "100%", zIndex: 0 }}
+                scrollWheelZoom={false}
+                className="rounded-md"
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <LocationMarker setPosition={setLocation} />
+              </MapContainer>
+            </div>
+          </div>
         </div>
+        {/* Message */}
+        {message && (
+          <div className="flex justify-center mt-4">
+            <p
+              className={
+                message.includes("successfully")
+                  ? "text-green-600"
+                  : "text-red-500"
+              }
+            >
+              {message}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

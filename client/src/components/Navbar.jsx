@@ -10,7 +10,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     await logout();
     setDropdownOpen(false);
-    navigate("/");
+    navigate("/"); // Redirect to homepage
   };
 
   return (
@@ -32,6 +32,20 @@ const Navbar = () => {
           <a href="/#contact-section" className="hover:text-gray-300">
             Contact
           </a>
+          {/* Show these links when logged in */}
+          {!loading && user && (
+            <>
+              <RouterLink to="/view-my-alerts" className="hover:text-gray-300">
+                My Alerts
+              </RouterLink>
+              <RouterLink to="/view-all-alerts" className="hover:text-gray-300">
+                All Alerts
+              </RouterLink>
+              <RouterLink to="/report-incident" className="hover:text-gray-300">
+                Report Incident
+              </RouterLink>
+            </>
+          )}
           {loading ? (
             <span className="animate-pulse text-gray-200 px-2">...</span>
           ) : user ? (
@@ -60,27 +74,6 @@ const Navbar = () => {
                   <div className="px-4 py-2 text-sm text-gray-700 border-b">
                     Hi, {user.fullName || user.email}
                   </div>
-                  <RouterLink
-                    to="/view-all-alerts"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    View All Alerts
-                  </RouterLink>
-                  <RouterLink
-                    to="/view-my-alerts"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    View My Alerts
-                  </RouterLink>
-                  <RouterLink
-                    to="/report-incident"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    Report Incident
-                  </RouterLink>
                   <RouterLink
                     to="/settings"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

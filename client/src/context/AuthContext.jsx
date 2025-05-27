@@ -1,6 +1,9 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 
+// Set Axios defaults to always include credentials
+axios.defaults.withCredentials = true;
+
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -26,13 +29,17 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await axios.post(
         "http://localhost:5000/api/auth/login",
-        { email, password },
-        { withCredentials: true }
+        { email, password }
       );
-      setUser(data.user); // <-- Set user directly from response
-      setLoading(false);
+      console.log("login response:", data);
+      await fetchUser(); // Refresh user state after login
       return { success: true };
     } catch (err) {
+      console.error(
+        "login error:",
+        err.response?.status,
+        err.response?.data?.message || err.message
+      );
       setLoading(false);
       return {
         success: false,
@@ -44,14 +51,18 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setLoading(true);
     try {
-      await axios.post(
-        "http://localhost:5000/api/auth/logout",
-        {},
-        { withCredentials: true }
+      const { data } = await axios.post(
+        "http://localhost:5000/api/auth/logout"
       );
+      console.log("logout response:", data);
       setUser(null);
       return { success: true };
     } catch (err) {
+      console.error(
+        "logout error:",
+        err.response?.status,
+        err.response?.data?.message || err.message
+      );
       setLoading(false);
       return {
         success: false,
@@ -63,15 +74,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    console.log("useEffect triggered, fetching user...");
     fetchUser();
-    // eslint-disable-next-line
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, fetchUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => useContext(AuthContext);
+export default AuthContext;
+// This code provides an authentication context for the React application.

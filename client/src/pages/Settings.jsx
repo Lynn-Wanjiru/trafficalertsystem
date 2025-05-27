@@ -1,80 +1,75 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
   const { user, fetchUser } = useAuth();
-  const [name, setName] = useState(user.fullName || "");
-  const [email, setEmail] = useState(user.email || "");
+  const [fullName, setFullName] = useState(user?.fullName || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleUpdate = async (e) => {
     e.preventDefault();
     try {
       await axios.put(
-        `http://localhost:5000/api/users/${user.id}`,
-        { fullName: name, email, password },
+        "http://localhost:5000/api/auth/me",
+        { fullName, email, password },
         { withCredentials: true }
       );
-      await fetchUser();
-      setMessage("Profile updated successfully");
+      setMessage("Update successful");
+      await fetchUser(); // Refresh user info in context
+      setTimeout(() => {
+        navigate("/"); // Redirect to user home page after 1 second
+      }, 1000);
     } catch (err) {
-      setMessage("");
+      setMessage(err.response?.data?.message || "Error updating profile");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-md mx-auto bg-white shadow-lg rounded-lg p-6">
-        <h1 className="text-3xl font-bold text-blue-900 mb-4">Settings</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-lg font-medium text-gray-700">
-              Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-blue-900/30 rounded-md p-3"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-lg font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-blue-900/30 rounded-md p-3"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-lg font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-blue-900/30 rounded-md p-3"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-900 to-purple-800 text-white py-3 rounded-md"
-          >
-            Update Profile
-          </button>
-          {message && (
-            <p className="text-center mt-4 text-green-600">{message}</p>
-          )}
-        </form>
-      </div>
+    <div className="max-w-md mx-auto mt-8 bg-white p-6 rounded shadow">
+      <h2 className="text-xl font-bold mb-4">Update Profile</h2>
+      <form onSubmit={handleUpdate} className="space-y-4">
+        <div>
+          <label className="block mb-1">Full Name</label>
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="border rounded w-full p-2"
+          />
+        </div>
+        <div>
+          <label className="block mb-1">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="border rounded w-full p-2"
+          />
+        </div>
+        <div>
+          <label className="block mb-1">New Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="border rounded w-full p-2"
+          />
+        </div>
+        <button
+          type="submit"
+          className="bg-blue-700 text-white px-4 py-2 rounded"
+        >
+          Update
+        </button>
+      </form>
+      {message && (
+        <div className="mt-4 text-center text-green-600">{message}</div>
+      )}
     </div>
   );
 };
