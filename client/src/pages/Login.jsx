@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const Login = () => {
+const Login = ({ role }) => {
   const { login, user, loading } = useAuth();
   const [email, setEmail] = useState("");
+  const [patrolID, setPatrolID] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [localLoading, setLocalLoading] = useState(false);
@@ -13,7 +14,9 @@ const Login = () => {
   // Effect: if user is set (after login), redirect
   useEffect(() => {
     if (user && !loading) {
-      navigate("/"); // or navigate(-1) to go back
+      if (user.role === "admin") navigate("/admin-dashboard");
+      else if (user.role === "patrol") navigate("/patrol-dashboard");
+      else navigate("/");
     }
   }, [user, loading, navigate]);
 
@@ -21,12 +24,16 @@ const Login = () => {
     e.preventDefault();
     setLocalLoading(true);
     setMessage("");
-    const result = await login(email, password);
+    let result;
+    if (role === "patrol") {
+      result = await login(undefined, password, patrolID);
+    } else {
+      result = await login(email, password);
+    }
     setLocalLoading(false);
     if (!result.success) {
       setMessage(result.message);
     }
-    // No need to navigate here; useEffect will handle redirect on user change
   };
 
   if (loading && !localLoading) {
@@ -42,30 +49,60 @@ const Login = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-white/10">
         <div className="max-w-md mx-auto bg-white shadow-lg rounded-lg p-6 border border-blue-900/20 animate-fade-in">
           <h2 className="text-3xl font-bold text-blue-900 text-center mb-8">
-            Welcome Back
+            {role === "admin"
+              ? "Admin Login"
+              : role === "patrol"
+              ? "Patrol Officer Login"
+              : "Welcome Back"}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-lg font-medium text-gray-700 mb-2"
-              >
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setMessage("");
-                }}
-                className="w-full border border-blue-900/30 rounded-md p-3"
-                placeholder="Enter your email"
-                required
-                disabled={loading || localLoading}
-              />
-            </div>
+            {role === "patrol" ? (
+              <>
+                <div>
+                  <label
+                    htmlFor="patrolID"
+                    className="block text-lg font-medium text-gray-700 mb-2"
+                  >
+                    Patrol ID
+                  </label>
+                  <input
+                    type="text"
+                    id="patrolID"
+                    value={patrolID}
+                    onChange={(e) => {
+                      setPatrolID(e.target.value);
+                      setMessage("");
+                    }}
+                    className="w-full border border-blue-900/30 rounded-md p-3"
+                    placeholder="Enter your patrol ID"
+                    required
+                    disabled={loading || localLoading}
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-lg font-medium text-gray-700 mb-2"
+                >
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setMessage("");
+                  }}
+                  className="w-full border border-blue-900/30 rounded-md p-3"
+                  placeholder="Enter your email"
+                  required
+                  disabled={loading || localLoading}
+                />
+              </div>
+            )}
             <div>
               <label
                 htmlFor="password"
@@ -122,15 +159,17 @@ const Login = () => {
             {message && (
               <p className="text-center text-red-500 mt-4">{message}</p>
             )}
-            <p className="text-center text-sm text-gray-600 mt-6">
-              Not a user?{" "}
-              <Link
-                to="/register"
-                className="text-blue-900 hover:text-purple-800"
-              >
-                Please Register
-              </Link>
-            </p>
+            {role !== "admin" && role !== "patrol" && (
+              <p className="text-center text-sm text-gray-600 mt-6">
+                Not a user?{" "}
+                <Link
+                  to="/register"
+                  className="text-blue-900 hover:text-purple-800"
+                >
+                  Please Register
+                </Link>
+              </p>
+            )}
           </form>
         </div>
       </div>

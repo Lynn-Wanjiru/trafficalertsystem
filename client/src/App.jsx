@@ -13,9 +13,19 @@ import ReportIncident from "./pages/ReportIncident";
 import ViewAllAlerts from "./pages/ViewAllAlerts";
 import ViewMyAlerts from "./pages/ViewMyAlerts";
 import Settings from "./pages/Settings";
+import PatrolDashboard from "./pages/patrol/PatrolDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import CreatePatrol from "./pages/admin/CreatePatrol";
+import ManageUsers from "./pages/admin/ManageUsers";
+import ManageAlerts from "./pages/admin/ManageAlerts";
+import AssignPatrol from "./pages/admin/AssignPatrol";
+import PatrolAssignedAlerts from "./pages/patrol/AssignedAlerts";
+import PatrolUpdateStatus from "./pages/patrol/UpdateStatus";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import PatrolLogin from "./pages/patrol/PatrolLogin";
 
-// Protected Route Component
+// General protected route for logged-in users
 const RequireAuth = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) {
@@ -26,23 +36,6 @@ const RequireAuth = ({ children }) => {
     );
   }
   return user ? children : <Navigate to="/login" replace />;
-};
-
-// Admin Protected Route
-const AdminDashboard = () => {
-  const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-800"></div>
-      </div>
-    );
-  }
-  return user && user.role === "admin" ? (
-    <div>Admin Dashboard</div>
-  ) : (
-    <Navigate to="/" replace />
-  );
 };
 
 const App = () => {
@@ -89,11 +82,42 @@ const App = () => {
           <Route
             path="/admin-dashboard"
             element={
-              <RequireAuth>
+              <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboard />
-              </RequireAuth>
+              </ProtectedRoute>
             }
           />
+          <Route
+            path="/patrol/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["patrol"]}>
+                <PatrolDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/admin" element={<Login role="admin" />} />
+          <Route path="/patrol" element={<Login role="patrol" />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/create-patrol" element={<CreatePatrol />} />
+          <Route
+            path="/admin/manage-users"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <ManageUsers />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/admin/manage-alerts" element={<ManageAlerts />} />
+          <Route path="/admin/assign-patrol" element={<AssignPatrol />} />
+          <Route
+            path="/patrol/assigned-alerts"
+            element={<PatrolAssignedAlerts />}
+          />
+          <Route
+            path="/patrol/update-status"
+            element={<PatrolUpdateStatus />}
+          />
+          <Route path="/patrol/login" element={<PatrolLogin />} />
         </Routes>
       </Router>
     </AuthProvider>

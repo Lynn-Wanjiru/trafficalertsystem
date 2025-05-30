@@ -34,31 +34,55 @@ const ReportIncident = () => {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState(null);
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!alertType || !description || !location) {
-      setMessage("All fields are required");
+    setSubmitting(true);
+    setError("");
+    if (
+      !alertType ||
+      !description ||
+      !location ||
+      typeof location.lat !== "number" ||
+      typeof location.lng !== "number"
+    ) {
+      setError("Please fill all fields and select a location on the map.");
+      setSubmitting(false);
       return;
     }
     try {
+      console.log({
+        type: alertType,
+        description,
+        location: location && {
+          type: "Point",
+          coordinates: [location.lng, location.lat],
+        },
+      });
       await axios.post(
         "http://localhost:5000/api/alerts",
         {
           type: alertType,
           description,
-          location: { lat: location.lat, lng: location.lng },
+          location: location && {
+            type: "Point",
+            coordinates: [location.lng, location.lat], // GeoJSON expects [lng, lat]
+          },
         },
         { withCredentials: true }
       );
-      setMessage("Successfully submitted!");
+      setSuccess("Alert submitted!");
       setTimeout(() => {
         navigate("/view-my-alerts");
       }, 1500);
     } catch (err) {
-      console.error("Submit error:", err.response?.data || err.message);
-      setMessage("Error submitting alert");
+      setError(err.response?.data?.message || "Error submitting alert");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -107,46 +131,49 @@ const ReportIncident = () => {
                   required
                 />
               </div>
+              {/* Map moved here, inside the form and before the submit button */}
+              <div className="my-4">
+                <label className="block text-lg font-medium text-gray-700 mb-2">
+                  Pin Location on Map
+                </label>
+                <div className="w-full h-[300px] md:h-[350px] rounded-md overflow-hidden">
+                  <MapContainer
+                    center={[-1.286389, 36.817223]} // Nairobi coordinates
+                    zoom={13}
+                    style={{ height: "100%", width: "100%", zIndex: 0 }}
+                    scrollWheelZoom={false}
+                    className="rounded-md"
+                  >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <LocationMarker setPosition={setLocation} />
+                  </MapContainer>
+                </div>
+                {!location && (
+                  <p className="text-red-500 mt-2">
+                    Please select a location on the map.
+                  </p>
+                )}
+              </div>
             </div>
             <button
               type="submit"
               className="bg-gradient-to-r from-blue-900 to-purple-800 text-white px-8 py-3 rounded-md text-lg font-medium hover:opacity-90 transition-opacity"
-              disabled={!alertType || !description || !location}
+              disabled={!alertType || !description || !location || submitting}
             >
-              Submit Alert
+              {submitting ? "Submitting..." : "Submit Alert"}
             </button>
           </form>
-          {/* Map */}
-          <div
-            className="bg-white shadow-md rounded-lg p-6 flex-1 flex items-center justify-center"
-            style={{ minWidth: 0, zIndex: 0 }}
-          >
-            <div className="w-full h-[300px] md:h-[350px] rounded-md overflow-hidden">
-              <MapContainer
-                center={[-1.286389, 36.817223]} // Nairobi coordinates
-                zoom={13}
-                style={{ height: "100%", width: "100%", zIndex: 0 }}
-                scrollWheelZoom={false}
-                className="rounded-md"
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <LocationMarker setPosition={setLocation} />
-              </MapContainer>
-            </div>
-          </div>
         </div>
         {/* Message */}
-        {message && (
+        {(message || error || success) && (
           <div className="flex justify-center mt-4">
-            <p
-              className={
-                message.includes("successfully")
-                  ? "text-green-600"
-                  : "text-red-500"
-              }
-            >
-              {message}
-            </p>
+            {submitting ? (
+              <p className="text-blue-600">Submitting your alert...</p>
+            ) : (
+              <p className={success ? "text-green-600" : "text-red-500"}>
+                {success || error}
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -30,7 +30,7 @@ router.delete("/:id", auth(["admin"]), async (req, res) => {
   }
 });
 
-// Get all users (admin only)
+// Get all users (admin only, drivers & patrols only)
 router.get("/", auth(["admin"]), async (req, res) => {
   try {
     const users = await User.find({ role: { $in: ["driver", "patrol"] } });

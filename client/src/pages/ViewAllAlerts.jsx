@@ -9,12 +9,21 @@ const ViewAllAlerts = () => {
   const [filterDate, setFilterDate] = useState("");
   const [filterTime, setFilterTime] = useState("");
   const [filterType, setFilterType] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/alerts", { withCredentials: true })
-      .then((res) => setAlerts(res.data))
-      .catch(() => setAlerts([]));
+    const fetchAlerts = async () => {
+      try {
+        const res = await axios.get("/api/alerts", {
+          withCredentials: true,
+        });
+        setAlerts(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        setAlerts([]);
+        setMessage("Error fetching alerts");
+      }
+    };
+    fetchAlerts();
   }, []);
 
   // Filtering logic
@@ -100,35 +109,38 @@ const ViewAllAlerts = () => {
           </button>
         </div>
       ))}
-      {selectedAlert && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded shadow-lg p-4 relative w-[90vw] max-w-lg">
-            <button
-              className="absolute top-2 right-2 text-xl"
-              onClick={() => setSelectedAlert(null)}
-            >
-              &times;
-            </button>
-            <MapContainer
-              center={[
-                selectedAlert.location.coordinates[1], // lat
-                selectedAlert.location.coordinates[0], // lng
-              ]}
-              zoom={15}
-              style={{ height: "300px", width: "100%" }}
-              scrollWheelZoom={false}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker
-                position={[
+      {selectedAlert &&
+        selectedAlert.location &&
+        Array.isArray(selectedAlert.location.coordinates) &&
+        selectedAlert.location.coordinates.length === 2 && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded shadow-lg p-4 relative w-[90vw] max-w-lg">
+              <button
+                className="absolute top-2 right-2 text-xl"
+                onClick={() => setSelectedAlert(null)}
+              >
+                &times;
+              </button>
+              <MapContainer
+                center={[
                   selectedAlert.location.coordinates[1], // lat
                   selectedAlert.location.coordinates[0], // lng
                 ]}
-              />
-            </MapContainer>
+                zoom={15}
+                style={{ height: "300px", width: "100%" }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <Marker
+                  position={[
+                    selectedAlert.location.coordinates[1],
+                    selectedAlert.location.coordinates[0],
+                  ]}
+                />
+              </MapContainer>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 };

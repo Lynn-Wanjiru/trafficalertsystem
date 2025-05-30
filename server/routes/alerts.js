@@ -2,113 +2,110 @@ const express = require("express");
 const router = express.Router();
 const Alert = require("../models/Alert");
 const auth = require("../middleware/auth");
+const mongoose = require("mongoose");
 
 // Create alert (drivers only)
 router.post("/", auth(["driver"]), async (req, res) => {
-  console.log("Session user:", req.session.user);
-  console.log("req.user:", req.user);
-  console.log("POST /api/alerts body:", req.body);
   const { type, description, location } = req.body;
   try {
     if (
       !type ||
       !description ||
       !location ||
-      typeof location.lat !== "number" ||
-      typeof location.lng !== "number"
+      location.type !== "Point" ||
+      !Array.isArray(location.coordinates) ||
+      location.coordinates.length !== 2 ||
+      typeof location.coordinates[0] !== "number" ||
+      typeof location.coordinates[1] !== "number"
     ) {
       return res.status(400).json({ message: "Missing or invalid fields" });
     }
     const alert = new Alert({
       type,
       description,
-      location: { type: "Point", coordinates: [location.lng, location.lat] },
-      reportedBy: req.user.id, // This must be .id, not ._id
+      location,
+      reportedBy: req.user.id, // or req.user._id
     });
     await alert.save();
     res.status(201).json(alert);
   } catch (err) {
-    console.error("Backend error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Get all alerts (optionally filter by date/time)
-router.get("/", async (req, res) => {
-  const { startDate, endDate } = req.query;
-  const query = {};
-  if (startDate && endDate) {
-    query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
-  }
+// Get all alerts (all logged-in users)
+router.get("/", auth(["driver", "patrol", "admin"]), async (req, res) => {
   try {
-    const alerts = await Alert.find(query).populate(
-      "reportedBy",
-      "fullName email"
-    );
+    const alerts = await Alert.find({});
     res.json(alerts);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Get my alerts (drivers only)
-router.get("/mine", auth(["driver"]), async (req, res) => {
+// Get my alerts (drivers, patrol, admin)
+router.get("/mine", auth(["driver", "patrol", "admin"]), async (req, res) => {
   try {
+    // Use req.user.id for both logging and querying
+    console.log("req.user.id:", req.user.id);
     const alerts = await Alert.find({ reportedBy: req.user.id });
+    console.log("Found alerts:", alerts);
     res.json(alerts);
+  } catch (err) {
+    console.error("Error in /api/alerts/mine:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Delete alert (admin only)
+router.delete("/:id", auth(["driver", "patrol", "admin"]), async (req, res) => {
+  try {
+    // Only allow deleting if user is admin or owner
+    const alert = await Alert.findById(req.params.id);
+    if (
+      !alert ||
+      (req.user.role !== "admin" && alert.reportedBy.toString() !== req.user.id)
+    ) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+    await Alert.findByIdAndDelete(req.params.id);
+    res.json({ message: "Alert deleted" });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Update alert
+// Update alert (owner or admin)
 router.put("/:id", auth(["driver", "patrol", "admin"]), async (req, res) => {
   try {
     const alert = await Alert.findById(req.params.id);
-    if (!alert) return res.status(404).json({ message: "Alert not found" });
-
-    // Only allow drivers to update their own alerts
     if (
-      req.user.role === "driver" &&
-      alert.reportedBy.toString() !== req.user.id
+      !alert ||
+      (req.user.role !== "admin" && alert.reportedBy.toString() !== req.user.id)
     ) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Only allow type and description to be updated by drivers
-    if (req.user.role === "driver") {
-      alert.type = req.body.type || alert.type;
-      alert.description = req.body.description || alert.description;
-      if (req.body.location) {
-        alert.location = {
-          type: "Point",
-          coordinates: [req.body.location.lng, req.body.location.lat],
-        };
+    // Validate location format if updating location
+    if (req.body.location) {
+      const { location } = req.body;
+      if (
+        location.type !== "Point" ||
+        !Array.isArray(location.coordinates) ||
+        location.coordinates.length !== 2 ||
+        typeof location.coordinates[0] !== "number" ||
+        typeof location.coordinates[1] !== "number"
+      ) {
+        return res.status(400).json({ message: "Invalid location format" });
       }
+      alert.location = location;
     }
 
-    alert.updatedAt = Date.now();
+    if (req.body.type) alert.type = req.body.type;
+    if (req.body.description) alert.description = req.body.description;
+
     await alert.save();
     res.json(alert);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// Delete alert
-router.delete("/:id", auth(["driver", "admin"]), async (req, res) => {
-  try {
-    const alert = await Alert.findById(req.params.id);
-    if (!alert) return res.status(404).json({ message: "Alert not found" });
-
-    if (
-      req.user.role === "driver" &&
-      alert.reportedBy.toString() !== req.user._id
-    ) {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-    await alert.deleteOne();
-    res.json({ message: "Alert deleted" });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }

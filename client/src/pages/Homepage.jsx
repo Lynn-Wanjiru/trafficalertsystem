@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
@@ -15,34 +15,19 @@ const Homepage = () => {
   );
   const maxCount = Math.max(...alertCounts, 1);
 
-  // Animation state for services
-  const [servicesVisible, setServicesVisible] = useState(false);
-  const servicesRef = useRef(null);
-
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/alerts", {
-          withCredentials: true,
-        });
-        setAlerts(res.data);
+        const res = await axios.get("http://localhost:5000/api/alerts");
+        setAlerts(res.data || []);
       } catch (err) {
-        setMessage(err.response?.data?.message || "Error fetching alerts");
+        setAlerts([]);
+        if (err.response?.status !== 401) {
+          setMessage("Error fetching alerts");
+        }
       }
     };
     fetchAlerts();
-  }, []);
-
-  useEffect(() => {
-    // Simple intersection observer to trigger animation
-    const observer = new window.IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setServicesVisible(true);
-      },
-      { threshold: 0.2 }
-    );
-    if (servicesRef.current) observer.observe(servicesRef.current);
-    return () => observer.disconnect();
   }, []);
 
   if (loading) {
@@ -199,7 +184,7 @@ const Homepage = () => {
         </div>
 
         {/* Services Section */}
-        <div id="services-section" className="mt-12" ref={servicesRef}>
+        <div id="services-section" className="mt-12">
           <h3 className="text-2xl font-bold text-blue-900 text-center mb-6">
             Services
           </h3>
@@ -228,17 +213,9 @@ const Homepage = () => {
             ].map((service, index) => (
               <div
                 key={index}
-                className={`bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow transform
-                ${servicesVisible ? "animate-pop-in" : "opacity-0 scale-75"}
-                `}
-                style={{
-                  animationDelay: `${index * 0.15}s`,
-                  animationFillMode: "forwards",
-                }}
+                className="bg-white shadow-md rounded-lg p-4 hover:shadow-xl transition-transform hover:scale-105"
               >
-                <h4 className={`font-bold ${service.color}`}>
-                  {service.title}
-                </h4>
+                <h4 className={`font-bold ${service.color}`}>{service.title}</h4>
                 <p className="text-gray-600">{service.desc}</p>
               </div>
             ))}
@@ -303,23 +280,3 @@ const Homepage = () => {
 };
 
 export default Homepage;
-
-/* Tailwind CSS custom animation (add to your global CSS, e.g., index.css or App.css):
-@keyframes pop-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.75);
-  }
-  80% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-.animate-pop-in {
-  animation: pop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-*/

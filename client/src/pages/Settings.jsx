@@ -1,75 +1,66 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
-  const { user, fetchUser } = useAuth();
-  const [fullName, setFullName] = useState(user?.fullName || "");
-  const [email, setEmail] = useState(user?.email || "");
+  const { user } = useAuth();
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
-  const navigate = useNavigate();
 
-  const handleUpdate = async (e) => {
+  // Dummy password update handler
+  const handlePasswordUpdate = (e) => {
     e.preventDefault();
-    try {
-      await axios.put(
-        "http://localhost:5000/api/auth/me",
-        { fullName, email, password },
-        { withCredentials: true }
-      );
-      setMessage("Update successful");
-      await fetchUser(); // Refresh user info in context
-      setTimeout(() => {
-        navigate("/"); // Redirect to user home page after 1 second
-      }, 1000);
-    } catch (err) {
-      setMessage(err.response?.data?.message || "Error updating profile");
-    }
+    setMessage("Password updated! (Demo only)");
+    setPassword("");
   };
 
   return (
-    <div className="max-w-md mx-auto mt-8 bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-bold mb-4">Update Profile</h2>
-      <form onSubmit={handleUpdate} className="space-y-4">
-        <div>
-          <label className="block mb-1">Full Name</label>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="border rounded w-full p-2"
-          />
-        </div>
-        <div>
-          <label className="block mb-1">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="border rounded w-full p-2"
-          />
-        </div>
-        <div>
-          <label className="block mb-1">New Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="border rounded w-full p-2"
-          />
-        </div>
-        <button
-          type="submit"
-          className="bg-blue-700 text-white px-4 py-2 rounded"
-        >
-          Update
-        </button>
-      </form>
-      {message && (
-        <div className="mt-4 text-center text-green-600">{message}</div>
-      )}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-700 to-purple-300">
+      <div className="bg-white/90 rounded-lg shadow-lg p-8 w-full max-w-md">
+        <h2 className="text-2xl font-bold text-blue-900 mb-6 text-center">
+          Settings
+        </h2>
+        {user?.role === "admin" ? (
+          <div>
+            <div className="mb-4">
+              <div className="font-semibold text-blue-900 mb-2">System Info</div>
+              <div className="text-gray-700">Traffic Alert System v1.0</div>
+            </div>
+            <div className="mb-4">
+              <div className="font-semibold text-blue-900 mb-2">Theme</div>
+              <div className="text-gray-700">Light / Dark (coming soon)</div>
+            </div>
+            <div>
+              <div className="font-semibold text-blue-900 mb-2">Language</div>
+              <div className="text-gray-700">English (more coming soon)</div>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handlePasswordUpdate} className="space-y-6">
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-2">
+                New Password
+              </label>
+              <input
+                type="password"
+                className="w-full border border-blue-900/30 rounded-md p-3"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-900 to-purple-800 text-white py-3 rounded-md"
+            >
+              Update Password
+            </button>
+            {message && (
+              <div className="text-green-700 text-center">{message}</div>
+            )}
+          </form>
+        )}
+      </div>
     </div>
   );
 };

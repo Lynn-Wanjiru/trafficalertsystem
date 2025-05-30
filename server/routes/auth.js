@@ -32,31 +32,48 @@ router.post("/register", async (req, res) => {
 
 // Login (email for drivers/admins)
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, patrolID } = req.body;
   console.log("POST /api/auth/login - SessionID:", req.sessionID);
   try {
-    let user = await User.findOne({ email });
-    if (!user) {
-      console.log("Login failed: Invalid email");
-      return res.status(400).json({ message: "Invalid credentials" });
+    // Admin login (hardcoded)
+    if (email === "admin@system.com") {
+      if (password === "Admin123") {
+        req.session.user = { id: "admin", email, role: "admin" };
+        return res.json({ success: true, user: req.session.user });
+      } else {
+        return res.json({
+          success: false,
+          message: "Invalid admin credentials",
+        });
+      }
     }
 
-    if (password !== user.password) {
-      console.log("Login failed: Invalid password");
-      return res.status(400).json({ message: "Invalid credentials" });
+    // Patrol login
+    if (patrolID) {
+      const patrol = await User.findOne({ patrolID, role: "patrol" });
+      if (!patrol)
+        return res.status(400).json({ message: "Invalid credentials" });
+      if (password !== patrol.password)
+        return res.status(400).json({ message: "Invalid credentials" });
+      req.session.user = { id: patrol._id, patrolID, role: "patrol" };
+      return res.json({
+        message: "Patrol login successful",
+        user: req.session.user,
+      });
     }
 
-    req.session.user = { id: user._id, email: user.email, role: user.role };
-    console.log(
-      "Login successful - SessionID:",
-      req.sessionID,
-      "User:",
-      req.session.user
-    );
-    res.json({
-      message: "Login successful",
-      user: { id: user._id, email: user.email, role: user.role },
-    });
+    // Driver login
+    if (email) {
+      const user = await User.findOne({ email, role: "driver" });
+      if (!user)
+        return res.json({ success: false, message: "Invalid credentials" });
+      if (user.password !== password)
+        return res.json({ success: false, message: "Invalid credentials" });
+      req.session.user = { id: user._id, email: user.email, role: "driver" };
+      return res.json({ success: true, user: req.session.user });
+    }
+
+    return res.json({ success: false, message: "Missing credentials" });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error" });
