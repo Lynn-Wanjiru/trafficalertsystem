@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/auth/me", {
+      const res = await axios.get("https://trafficalertsystem.onrender.com/api/auth/me", {
         withCredentials: true,
       });
       if (res.data && res.data.user) {
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const { data } = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        "https://trafficalertsystem.onrender.com/api/auth/login",
         { email, password }
       );
       console.log("login response:", data);
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await axios.post(
-        "http://localhost:5000/api/auth/logout",
+        "https://trafficalertsystem.onrender.com/api/auth/logout",
         {},
         {
           withCredentials: true,

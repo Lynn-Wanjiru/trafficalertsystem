@@ -13,7 +13,7 @@ const Register = () => {
     e.preventDefault();
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/register",
+        "https://trafficalertsystem.onrender.com/api/auth/register",
         { fullName: name, email, password },
         { withCredentials: true }
       );

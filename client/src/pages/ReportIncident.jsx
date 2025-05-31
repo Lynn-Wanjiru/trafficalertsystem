@@ -64,7 +64,7 @@ const ReportIncident = () => {
         },
       });
       await axios.post(
-        "http://localhost:5000/api/alerts",
+        "https://trafficalertsystem.onrender.com/api/alerts",
         {
           type: alertType,
           description,

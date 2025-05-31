@@ -18,7 +18,9 @@ const Homepage = () => {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/alerts");
+        const res = await axios.get(
+          "https://trafficalertsystem.onrender.com/api/alerts"
+        );
         setAlerts(res.data || []);
       } catch (err) {
         setAlerts([]);
