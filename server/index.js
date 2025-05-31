@@ -20,7 +20,10 @@ app.use(express.json());
 // 1. CORS FIRST!
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://trafficalertsystem.onrender.com",
+    ],
     credentials: true,
   })
 );
@@ -33,10 +36,10 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: {
-      secure: false,
+      secure: true,
       httpOnly: true,
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     },
   })
 );
@@ -54,8 +57,8 @@ app.use((req, res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/alerts", alertsRoutes);
 app.use("/api/admin", require("./routes/admin"));
-const patrolRoutes = require('./routes/patrol');
-app.use('/api', patrolRoutes);
+const patrolRoutes = require("./routes/patrol");
+app.use("/api", patrolRoutes);
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "dist")));
