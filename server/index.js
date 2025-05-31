@@ -5,6 +5,7 @@ const authRoutes = require("./routes/auth");
 const alertsRoutes = require("./routes/alerts");
 const MongoStore = require("connect-mongo");
 const mongoose = require("mongoose");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -55,6 +56,13 @@ app.use("/api/alerts", alertsRoutes);
 app.use("/api/admin", require("./routes/admin"));
 const patrolRoutes = require('./routes/patrol');
 app.use('/api', patrolRoutes);
+// Serve static files in production
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "dist")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "dist", "index.html"));
+  });
+}
 
 // MongoDB Connection
 mongoose
