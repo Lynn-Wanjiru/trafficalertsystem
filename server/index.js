@@ -21,8 +21,8 @@ app.use(express.json());
 app.use(
   cors({
     origin: [
-      
       "https://trafficalertsystem.onrender.com",
+      "http://localhost:5173",
     ],
     credentials: true,
   })
@@ -59,6 +59,7 @@ app.use("/api/alerts", alertsRoutes);
 app.use("/api/admin", require("./routes/admin"));
 const patrolRoutes = require("./routes/patrol");
 app.use("/api", patrolRoutes);
+
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "dist")));

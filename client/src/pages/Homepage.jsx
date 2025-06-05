@@ -19,7 +19,7 @@ const Homepage = () => {
     const fetchAlerts = async () => {
       try {
         const res = await axios.get(
-          "https://trafficalertsystem.onrender.com/api/alerts"
+          `${import.meta.env.VITE_API_URL}/api/alerts`
         );
         setAlerts(res.data || []);
       } catch (err) {
@@ -217,7 +217,9 @@ const Homepage = () => {
                 key={index}
                 className="bg-white shadow-md rounded-lg p-4 hover:shadow-xl transition-transform hover:scale-105"
               >
-                <h4 className={`font-bold ${service.color}`}>{service.title}</h4>
+                <h4 className={`font-bold ${service.color}`}>
+                  {service.title}
+                </h4>
                 <p className="text-gray-600">{service.desc}</p>
               </div>
             ))}

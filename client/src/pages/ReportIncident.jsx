@@ -64,7 +64,7 @@ const ReportIncident = () => {
         },
       });
       await axios.post(
-        "https://trafficalertsystem.onrender.com/api/alerts",
+        `${import.meta.env.VITE_API_URL}/api/alerts`,
         {
           type: alertType,
           description,

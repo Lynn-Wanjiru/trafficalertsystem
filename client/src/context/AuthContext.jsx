@@ -13,9 +13,10 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const res = await axios.get("https://trafficalertsystem.onrender.com/api/auth/me", {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/auth/me`,
+        { withCredentials: true }
+      );
       if (res.data && res.data.user) {
         setUser(res.data.user);
       } else {
@@ -32,10 +33,10 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const { data } = await axios.post(
-        "https://trafficalertsystem.onrender.com/api/auth/login",
-        { email, password }
+        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        { email, password },
+        { withCredentials: true }
       );
-      console.log("login response:", data);
       await fetchUser(); // Refresh user state after login
       return { success: true };
     } catch (err) {
@@ -55,11 +56,9 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await axios.post(
-        "https://trafficalertsystem.onrender.com/api/auth/logout",
+        `${import.meta.env.VITE_API_URL}/api/auth/logout`,
         {},
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
       setUser(null);
       window.location.href = "/"; // redirect to public home
@@ -83,7 +82,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => useContext(AuthContext);
 export default AuthContext;
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
+export const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user || !allowedRoles.includes(user.role)) return <Navigate to="/" />;

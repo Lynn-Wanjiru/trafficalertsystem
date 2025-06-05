@@ -13,11 +13,10 @@ const Register = () => {
     e.preventDefault();
     try {
       const res = await axios.post(
-        "https://trafficalertsystem.onrender.com/api/auth/register",
+        `${import.meta.env.VITE_API_URL}/api/auth/register`,
         { fullName: name, email, password },
         { withCredentials: true }
       );
-      console.log("Registration response:", res.data); // Debug response
       if (res.data.message === "Driver registered successfully") {
         setMessage("Registration successful! Redirecting to login...");
         setTimeout(() => navigate("/login"), 2000);
@@ -25,7 +24,6 @@ const Register = () => {
         setMessage(res.data.message || "Unexpected response");
       }
     } catch (err) {
-      console.error("Registration error:", err.response?.data || err.message); // Debug error
       setMessage(err.response?.data?.message || "Error registering");
     }
   };
