@@ -22,13 +22,14 @@ const PatrolLogin = () => {
     e.preventDefault();
     setError("");
     try {
+      const { patrolID, password } = form;
       await axios.post(
-        "/api/auth/login",
-        { patrolID: form.patrolID, password: form.password },
+        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        { patrolID, password },
         { withCredentials: true }
       );
       await fetchUser();
-      navigate("/patrol/dashboard");
+      // No need to navigate here; useEffect will handle it
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     }
