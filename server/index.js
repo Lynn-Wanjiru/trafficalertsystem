@@ -44,6 +44,9 @@ app.use(
   })
 );
 
+// Trust proxy for Heroku
+app.set("trust proxy", 1);
+
 // Debug session for every request
 app.use((req, res, next) => {
   console.log(
